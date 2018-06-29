@@ -1,11 +1,13 @@
-# Start from a Debian image with the latest version of Go installed
-# and a workspace (GOPATH) configured at /go.
-FROM golang
-WORKDIR /go/src/ytx/kong-prometheus
-ADD . .
-RUN go get -d
-RUN go install ytx/kong-prometheus
+FROM golang:1.10.3-stretch
+WORKDIR /go/src/github.com/cilindrox/kong-prometheus-exporter/
+COPY server.go .
+RUN go get -d -v
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOARM=6 go build -a -installsuffix cgo -ldflags '-w -s' -o server
 
-ENTRYPOINT /go/bin/kong-prometheus
+FROM scratch
 
-EXPOSE 8080
+ENV PORT=3000
+COPY --from=0 /go/src/github.com/cilindrox/kong-prometheus-exporter/server /go/server
+EXPOSE 3000
+
+ENTRYPOINT ["/go/server"]
