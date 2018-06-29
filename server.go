@@ -3,10 +3,11 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
 	"net/http"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var (
@@ -45,6 +46,11 @@ type API struct {
 	Name string `json:"name"`
 }
 
+// v0.13 services
+type Service struct {
+	Name string `json:"name"`
+}
+
 type Request struct {
 	Uri    string `json:"uri"`
 	Method string `json:"method"`
@@ -64,6 +70,7 @@ type KongLog struct {
 	Request   Request   `json:"request"`
 	Response  Response  `json:"response"`
 	Api       API       `json:"api"`
+	Service   Service   `json:"service"`
 	Consumer  Consumer  `json:"consumer"`
 	Latencies Latencies `json:"latencies"`
 	ClientIp  string    `json:"client_ip"`
@@ -83,12 +90,17 @@ func handleKong(w http.ResponseWriter, req *http.Request) {
 	log.Printf("%#v\n", kongLog.Request)
 	log.Printf("%#v\n", kongLog.Response)
 	log.Printf("%#v\n", kongLog.Api)
+	log.Printf("%#v\n", kongLog.Service)
 	log.Printf("%#v\n", kongLog.Consumer)
 	log.Printf("%#v\n", kongLog.Latencies)
 	log.Printf("%#v\n", kongLog.ClientIp)
 
+	module := kongLog.Service.Name
+	if kongLog.Api.Name != "" {
+		module = kongLog.Api.Name
+	}
 	method := kongLog.Request.Uri
-	module := kongLog.Api.Name
+	module = module
 	status := fmt.Sprint(kongLog.Response.Status)
 	methodType := kongLog.Request.Method
 	responseTimeInMs.With(prometheus.Labels{"method": method, "module": module, "status": status, "method_type": methodType}).Observe(float64(kongLog.Latencies.Request))
@@ -100,5 +112,5 @@ func handleKong(w http.ResponseWriter, req *http.Request) {
 func main() {
 	http.Handle("/metrics", promhttp.Handler())
 	http.Handle("/kong", http.HandlerFunc(handleKong))
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(":3000", nil))
 }
