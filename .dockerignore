@@ -1,0 +1,4 @@
+*
+!*.go
+!manifest.json
+!lock.json
